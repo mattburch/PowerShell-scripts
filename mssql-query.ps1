@@ -17,7 +17,7 @@ function ExecuteSqlQuery ($Server, $Database, $SQLQuery) {
 
 function printData ($results) {
   if ($results.Length -lt 1) {
-    Write-Host ("[-] No Results Returned")
+    Write-Host ("`n[-] No Results Returned")
   }
   else {
     $results
@@ -49,7 +49,7 @@ function QueryTable-PCI {
   $resultsDataTable = New-Object System.Data.DataTable
   $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
 
-  printData $resultsDataTable
+  printData($resultsDataTable)
 
 }
 
@@ -58,25 +58,28 @@ function QueryAll-PCI {
   param(
     [string]$Server
   )
+  $db = pullDatabaseList $Server
 
-  # Variable declaration
-  $Database = "master"
-  $SQLQuery = "SELECT t.name AS table_name," +
-              " SCHEMA_NAME(schema_id) AS schema_name," +
-              " c.name AS column_name " +
-              "FROM sys.tables AS t " +
-              "INNER JOIN sys.columns c" +
-              " ON t.OBJECT_ID = c.OBJECT_ID " +
-              "WHERE LOWER(c.name) LIKE '%cc%'" +
-              " or LOWER(c.name) LIKE '%cvv%'" +
-              " or LOWER(c.name) LIKE '%card%'" +
-              " or LOWER(c.name) LIKE '%routing%' " +
-              " or LOWER(c.name) LIKE '%rtn%' " +
-              "ORDER BY schema_name, table_name;"
-  $resultsDataTable = New-Object System.Data.DataTable
-  $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
-
-  printData $resultsDataTable
+  foreach ($row in $db) {
+    # Variable declaration
+    $SQLQuery = "SELECT t.name AS table_name," +
+                " SCHEMA_NAME(schema_id) AS schema_name," +
+                " c.name AS column_name " +
+                "FROM sys.tables AS t " +
+                "INNER JOIN sys.columns c" +
+                " ON t.OBJECT_ID = c.OBJECT_ID " +
+                "WHERE LOWER(c.name) LIKE '%cc%'" +
+                " or LOWER(c.name) LIKE '%cvv%'" +
+                " or LOWER(c.name) LIKE '%card%'" +
+                " or LOWER(c.name) LIKE '%routing%' " +
+                " or LOWER(c.name) LIKE '%rtn%' " +
+                "ORDER BY schema_name, table_name;"
+    $newres = New-Object System.Data.DataTable
+    $newres = ExecuteSqlQuery $Server $($row[0]) $SQLQuery
+    Write-Host("`n`n$($row[0])")
+    Write-Host("--------------------------------------------")
+    printData($newres)
+  }
 
 }
 
@@ -102,7 +105,7 @@ function QueryTable-PII {
   $resultsDataTable = New-Object System.Data.DataTable
   $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
 
-  printData $resultsDataTable
+  printData($resultsDataTable)
 
 }
 
@@ -112,25 +115,39 @@ function QueryAll-PII {
   param(
     [string]$Server
   )
+  $db = pullDatabaseList $Server
 
+  foreach ($row in $db) {
+    # Variable declaration
+    $SQLQuery = "SELECT t.name AS table_name," +
+                " SCHEMA_NAME(schema_id) AS schema_name," +
+                " c.name AS column_name " +
+                "FROM sys.tables AS t " +
+                "INNER JOIN sys.columns c" +
+                " ON t.OBJECT_ID = c.OBJECT_ID " +
+                "WHERE LOWER(c.name) LIKE '%ssn%'" +
+                " or LOWER(c.name) LIKE '%birth%'" +
+                " or LOWER(c.name) LIKE '%address%'" +
+                "ORDER BY schema_name, table_name;"
+    $newres = New-Object System.Data.DataTable
+    $newres = ExecuteSqlQuery $Server $($row[0]) $SQLQuery
+    Write-Host("`n`n$($row[0])")
+    Write-Host("--------------------------------------------")
+    printData($newres)
+  }
+}
 
-  # Variable declaration
-  $Database = "master"
-  $SQLQuery = "SELECT t.name AS table_name," +
-              " SCHEMA_NAME(schema_id) AS schema_name," +
-              " c.name AS column_name " +
-              "FROM sys.tables AS t " +
-              "INNER JOIN sys.columns c" +
-              " ON t.OBJECT_ID = c.OBJECT_ID " +
-              "WHERE LOWER(c.name) LIKE '%ssn%'" +
-              " or LOWER(c.name) LIKE '%birth%'" +
-              " or LOWER(c.name) LIKE '%address%'" +
-              "ORDER BY schema_name, table_name;"
+function QueryCustom {
+  # Pull in required parameters
+  param(
+    [string]$Server,
+    [string]$Database,
+    [string]$SQLQuery
+  )
   $resultsDataTable = New-Object System.Data.DataTable
   $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
 
-  printData $resultsDataTable
-
+  printData($resultsDataTable)
 }
 
 function ListTable-Columns {
@@ -153,7 +170,7 @@ function ListTable-Columns {
   $resultsDataTable = New-Object System.Data.DataTable
   $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
 
-  printData $resultsDataTable
+  printData($resultsDataTable)
 
 }
 
@@ -172,7 +189,7 @@ function DumpTable-Top1000 {
   $resultsDataTable = New-Object System.Data.DataTable
   $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
 
-  printData $resultsDataTable
+  printData($resultsDataTable)
 
 }
 
@@ -192,8 +209,19 @@ function DumpTableCustom-Top1000 {
   $resultsDataTable = New-Object System.Data.DataTable
   $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
 
-  printData $resultsDataTable
+  printData($resultsDataTable)
 
+}
+
+function pullDatabaseList ($Server) {
+  # Variable declaration
+  $Database = "master"
+  $SQLQuery = "SELECT name " +
+              "FROM master.dbo.sysdatabases;"
+  $resultsDataTable = New-Object System.Data.DataTable
+  $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
+
+  return $resultsDataTable
 }
 
 function Get-Databases {
@@ -202,14 +230,5 @@ function Get-Databases {
   param(
     [string]$Server
   )
-
-  # Variable declaration
-  $Database = "master"
-  $SQLQuery = "SELECT name " +
-              "FROM master.dbo.sysdatabases"
-  $resultsDataTable = New-Object System.Data.DataTable
-  $resultsDataTable = ExecuteSqlQuery $Server $Database $SQLQuery
-
-  printData $resultsDataTable
-
+  printData(pullDatabaseList $Server)
 }
